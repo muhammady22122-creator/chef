@@ -2,7 +2,7 @@ import {
   createDataStream,
   streamText,
   type CoreAssistantMessage,
-  type CoreMessage,
+  type ModelMessage,
   type CoreToolMessage,
   type DataStreamWriter,
   type LanguageModelUsage,
@@ -108,7 +108,7 @@ export async function convexAgent(args: {
     tools.edit = editTool;
   }
 
-  const messagesForDataStream: CoreMessage[] = [
+  const messagesForDataStream: ModelMessage[] = [
     {
       role: 'system' as const,
       content: ROLE_SYSTEM_PROMPT,
@@ -139,7 +139,7 @@ export async function convexAgent(args: {
             recordUsageCb,
             toolsDisabledFromRepeatedErrors: shouldDisableTools,
             recordRawPromptsForDebugging,
-            coreMessages: messagesForDataStream,
+            modelMessages: messagesForDataStream,
             modelProvider,
             modelChoice,
             collapsedMessages,
@@ -207,7 +207,7 @@ async function onFinishHandler({
   recordUsageCb,
   toolsDisabledFromRepeatedErrors,
   recordRawPromptsForDebugging,
-  coreMessages,
+  modelMessages,
   modelProvider,
   modelChoice,
   collapsedMessages,
@@ -227,7 +227,7 @@ async function onFinishHandler({
   ) => Promise<void>;
   recordRawPromptsForDebugging: boolean;
   toolsDisabledFromRepeatedErrors: boolean;
-  coreMessages: CoreMessage[];
+  modelMessages: ModelMessage[];
   modelProvider: ModelProvider;
   modelChoice: string | undefined;
   collapsedMessages: boolean;
@@ -327,13 +327,13 @@ async function onFinishHandler({
     await recordUsageCb(messages[messages.length - 1], { usage, providerMetadata });
   }
   if (recordRawPromptsForDebugging) {
-    const responseCoreMessages = result.response.messages as (CoreAssistantMessage | CoreToolMessage)[];
+    const responseModelMessages = result.response.messages as (CoreAssistantMessage | CoreToolMessage)[];
     // don't block the request but keep the request alive in Vercel Lambdas
     waitUntil(
       storeDebugPrompt(
-        coreMessages,
+        modelMessages,
         chatInitialId,
-        responseCoreMessages,
+        responseModelMessages,
         result,
         {
           usage,
@@ -406,9 +406,9 @@ function buildUsageRecord(usage: Usage): UsageRecord {
 }
 
 async function storeDebugPrompt(
-  promptCoreMessages: CoreMessage[],
+  promptModelMessages: ModelMessage[],
   chatInitialId: string,
-  responseCoreMessages: CoreMessage[],
+  responseModelMessages: ModelMessage[],
   result: Omit<StepResult<any>, 'stepType' | 'isContinued'>,
   generation: { usage: LanguageModelUsage; providerMetadata?: ProviderMetadata },
   modelProvider: ModelProvider,
@@ -418,7 +418,7 @@ async function storeDebugPrompt(
     const modelId = result.response.modelId || '';
     const usage = usageFromGeneration(generation);
 
-    const promptMessageData = new TextEncoder().encode(JSON.stringify(promptCoreMessages));
+    const promptMessageData = new TextEncoder().encode(JSON.stringify(promptModelMessages));
     const compressedData = compressWithLz4Server(promptMessageData);
 
     type Metadata = Omit<(typeof internal.debugPrompt.storeDebugPrompt)['_args'], 'promptCoreMessagesStorageId'>;
@@ -426,7 +426,7 @@ async function storeDebugPrompt(
 
     const metadata = {
       chatInitialId,
-      responseCoreMessages,
+      responseCoreMessages: responseModelMessages,
       finishReason,
       modelId,
       usage: buildUsageRecord(usage),

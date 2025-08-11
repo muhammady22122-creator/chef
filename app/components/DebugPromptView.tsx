@@ -2,7 +2,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { JsonView } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
-import type { CoreMessage, FilePart, ToolCallPart, TextPart } from 'ai';
+import type { ModelMessage, FilePart, ToolCallPart, TextPart } from 'ai';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
 import { ClipboardIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { useDebugPrompt } from '~/lib/hooks/useDebugPrompt';
@@ -14,58 +14,58 @@ import { IconButton } from '~/components/ui/IconButton';
  * <DebugAllPromptsForChat initialChatId={}>
  *   <UserPromptGroup>  // A group of LLM calls that were executed without the user typing anything in between
  *     <LlmPromptAndResponseView model="Anthropic's Best">  // A single call to an LLM and the response we received bac
- *       <CoreMessageView role='system'>      // CoreMessage is a Vercel AI SDK type, it's a User or Assistant or System or Tool message.
+ *       <ModelMessageView role='system'>      // ModelMessage is a Vercel AI SDK type, it's a User or Assistant or System or Tool message.
  *         Do a good job.
- *       </CoreMessageView>
- *       <CoreMessageView role='user'>
+ *       </ModelMessageView>
+ *       <ModelMessageView role='user'>
  *         Please make an app!
- *       </CoreMessageView>
- *       <CoreMessageView role='assistant'>
+ *       </ModelMessageView>
+ *       <ModelMessageView role='assistant'>
  *         Will do! Please write these files and run this tool.
- *       </CoreMessageView>
+ *       </ModelMessageView>
  *     </LlmPromptAndResponseView>
  *
  *     --- this represents a new call to /api/chat and a new network request to an LLM provider
  *
  *     <LlmPromptAndResponseView model="Something from AWS">
- *       <CoreMessageView role='system'> // We typically repeat back all these messages
+ *       <ModelMessageView role='system'> // We typically repeat back all these messages
  *         Do a good job.
- *       </CoreMessageView>
- *       <CoreMessageView role='system'> // But we can also add new ones
+ *       </ModelMessageView>
+ *       <ModelMessageView role='system'> // But we can also add new ones
  *         BTW, the user is using Chrome on a Mac.
- *       </CoreMessageView>
- *       <CoreMessageView role='user'>
+ *       </ModelMessageView>
+ *       <ModelMessageView role='user'>
  *         Please make an app!
- *       </CoreMessageView>
- *       <CoreMessageView role='assistant'>
+ *       </ModelMessageView>
+ *       <ModelMessageView role='assistant'>
  *         Will do! Please write these files and run this tool.
- *       </CoreMessageView>
- *       <CoreMessageView role='tool'>
+ *       </ModelMessageView>
+ *       <ModelMessageView role='tool'>
  *         file write done! and also I deployed the app.
- *       </CoreMessageView>
+ *       </ModelMessageView>
  *     </LlmPromptAndResponseView>
  *
  *     --- this represents a new call to /api/chat and a new network request to an LLM provider
  *
  *     <LlmPromptAndResponseView model="Something from AWS">
- *       <CoreMessageView role='system'> // We typically repeat back all these messages
+ *       <ModelMessageView role='system'> // We typically repeat back all these messages
  *         Do a good job.
- *       </CoreMessageView>
- *       <CoreMessageView role='system'> // But we can also add new ones
+ *       </ModelMessageView>
+ *       <ModelMessageView role='system'> // But we can also add new ones
  *         BTW, the user is using Chrome on a Mac.
- *       </CoreMessageView>
- *       <CoreMessageView role='user'>
+ *       </ModelMessageView>
+ *       <ModelMessageView role='user'>
  *         Please make an app!
- *       </CoreMessageView>
- *       <CoreMessageView role='assistant'>
+ *       </ModelMessageView>
+ *       <ModelMessageView role='assistant'>
  *         Will do! Please write these files and run this tool.
- *       </CoreMessageView>
- *       <CoreMessageView role='tool'>
+ *       </ModelMessageView>
+ *       <ModelMessageView role='tool'>
  *         file write done! and also I deployed the app.
- *       </CoreMessageView>
- *       <CoreMessageView role='assistant'>
+ *       </ModelMessageView>
+ *       <ModelMessageView role='assistant'>
  *         OK all done, I made you an app!
- *       </CoreMessageView>
+ *       </ModelMessageView>
  *     </LlmPromptAndResponseView>
  *   </UserPromptGroup>
  *
@@ -107,7 +107,7 @@ function isToolCallPart(part: unknown): part is ToolCallPart {
   return typeof part === 'object' && part !== null && 'type' in part && part.type === 'tool-call';
 }
 
-function getMessageCharCount(message: CoreMessage): number {
+function getMessageCharCount(message: ModelMessage): number {
   if (typeof message.content === 'string') return message.content.length;
   if (Array.isArray(message.content)) {
     return message.content.reduce((sum, part) => {
@@ -145,7 +145,7 @@ function getPreviewClass(text: string) {
   return `preview-${Math.abs(text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0))}`;
 }
 
-function findLastAssistantMessage(prompt: CoreMessage[]): string {
+function findLastAssistantMessage(prompt: ModelMessage[]): string {
   // The last assistant message in a LLM  of messages is the response.
   // It should generally just be the last message, full stop.
   for (let i = prompt.length - 1; i >= 0; i--) {
@@ -186,7 +186,7 @@ function LlmPromptAndResponseView({ promptAndResponse }: { promptAndResponse: Ll
   const totalInputChars = (prompt || []).reduce((sum, msg) => sum + getMessageCharCount(msg), 0);
   const totalOutputChars = (completion || []).reduce((sum, msg) => sum + getMessageCharCount(msg), 0);
 
-  const getTokenEstimate = (message: CoreMessage) => {
+  const getTokenEstimate = (message: ModelMessage) => {
     const charCount = getMessageCharCount(message);
     return estimateTokenCount(charCount, totalInputChars, promptTokensTotal);
   };
@@ -239,7 +239,7 @@ function LlmPromptAndResponseView({ promptAndResponse }: { promptAndResponse: Ll
             </div>
 
             {prompt.map((message, idx) => (
-              <CoreMessageView
+              <ModelMessageView
                 key={idx}
                 message={message}
                 getTokenEstimate={getTokenEstimate}
@@ -252,7 +252,7 @@ function LlmPromptAndResponseView({ promptAndResponse }: { promptAndResponse: Ll
               {formatNumber(outputTokens)} completion tokens ({formatNumber(totalOutputChars)} chars)
             </div>
             {completion.map((message, idx) => (
-              <CoreMessageView key={idx} message={message} />
+              <ModelMessageView key={idx} message={message} />
             ))}
           </div>
         </div>
@@ -261,13 +261,13 @@ function LlmPromptAndResponseView({ promptAndResponse }: { promptAndResponse: Ll
   );
 }
 
-type CoreMessageViewProps = {
-  message: CoreMessage;
-  getTokenEstimate?: (message: CoreMessage) => number;
+type ModelMessageViewProps = {
+  message: ModelMessage;
+  getTokenEstimate?: (message: ModelMessage) => number;
   totalCompletionTokens?: number;
 };
 
-function getMessagePreview(content: CoreMessage['content']): string {
+function getMessagePreview(content: ModelMessage['content']): string {
   if (typeof content === 'string') {
     return content;
   }
@@ -288,7 +288,7 @@ function getMessagePreview(content: CoreMessage['content']): string {
 }
 
 type MessageContentViewProps = {
-  content: CoreMessage['content'];
+  content: ModelMessage['content'];
   showRawJson?: boolean;
 };
 
@@ -371,7 +371,7 @@ const roleColors = {
   tool: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
 } as const;
 
-function CoreMessageView({ message, getTokenEstimate, totalCompletionTokens }: CoreMessageViewProps) {
+function ModelMessageView({ message, getTokenEstimate, totalCompletionTokens }: ModelMessageViewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const roleColor = roleColors[message.role as keyof typeof roleColors] || roleColors.user;
@@ -428,7 +428,7 @@ function CoreMessageView({ message, getTokenEstimate, totalCompletionTokens }: C
 
 function findTriggeringUserMessage(promptAndResponses: LlmPromptAndResponse[]): string {
   // Look through all prompt and responses in reverse order.
-  // Generally this should be the final CoreMessage of the prompt.
+  // Generally this should be the final ModelMessage of the prompt.
   for (let i = promptAndResponses.length - 1; i >= 0; i--) {
     const promptAndResponse = promptAndResponses[i];
     // Look through messages in reverse order to find the last user message

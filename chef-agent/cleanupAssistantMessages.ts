@@ -1,4 +1,4 @@
-import { convertToCoreMessages } from 'ai';
+import { convertToModelMessages } from 'ai';
 import type { Message } from 'ai';
 import { EXCLUDED_FILE_PATHS } from './constants.js';
 
@@ -24,7 +24,7 @@ export function cleanupAssistantMessages(messages: Message[]) {
       (message.parts &&
         message.parts.filter((part) => part.type === 'text' || part.type === 'tool-invocation').length > 0),
   );
-  return convertToCoreMessages(processedMessages).filter((message) => message.content.length > 0);
+  return convertToModelMessages(processedMessages).filter((message) => message.content.length > 0);
 }
 
 function cleanMessage(message: string) {
